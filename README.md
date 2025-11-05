@@ -5,7 +5,7 @@ Count alleles and alignment events per position for a specified genomic region.
 ## Installation
 
 You will need `cmake>=3.16` and `htslib>=1.14` installed,
-and preferably pkg-config if you want to install
+and preferably `pkg-config` if you want to install
 the easy way.
 If you don't already have these dependencies,
 it would be best to install via your package
