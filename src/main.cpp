@@ -135,7 +135,7 @@ int main (int argc,
     try {
         cxxopts::Options options (
             "pileup-events",
-            "Get per-position genomic event counts"
+            "Count alignment events per position for a specified genomic region"
             "\n\n"
             "Where reference names contain colons, surround in"
             "\n"

@@ -1,5 +1,7 @@
 # pileup-events
 
+Count alignment events per position for a specified genomic region.
+
 ## Installation
 
 You will need cmake and htslib installed,
