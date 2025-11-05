@@ -11,11 +11,11 @@ If you don't already have these dependencies,
 it would be best to install via your package
 manager. e.g. on Ubuntu
 ```bash
-  apt install cmake cxxopts htslib pkg-config
+  apt install cmake pkg-config htslib
 ```
 or on mac
 ```bash
-  brew install cmake cxxopts htslib pkg-config
+  brew install cmake pkg-config htslib
 ```
 
 Once you have these dependencies, to
