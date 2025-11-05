@@ -1,6 +1,6 @@
 # pileup-events
 
-Count alignment events per position for a specified genomic region.
+Count alleles and alignment events per position for a specified genomic region.
 
 ## Installation
 

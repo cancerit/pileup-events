@@ -135,11 +135,13 @@ int main (int argc,
     try {
         cxxopts::Options options (
             "pileup-events",
-            "Count alignment events per position for a specified genomic region"
+            "Count alleles and alignment events per position for"
+            "\n"
+            "a specified genomic region."
             "\n\n"
             "Where reference names contain colons, surround in"
             "\n"
-            "curly braces like {HLA-DRB1*12:17}:<start>-<end>"
+            "curly braces like {HLA-DRB1*12:17}:<start>-<end>."
             "\n\n"
 
             "chr1:100 is treated as the single base pair region"
