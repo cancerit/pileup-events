@@ -1,12 +1,21 @@
 cmake_minimum_required(VERSION 3.16)
 project(pileup-events CXX)
 
-option(ENABLE_DEBUG_FLAGS "Enable extra debug compile options" OFF)
-
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+
+option(ENABLE_DEBUG_FLAGS "Enable extra debug compile options" OFF)
+
+# direct paths to deps
+set(CXXOPTS_ROOT "" CACHE PATH "Root of cxxopts (contains include/ or cxxopts.hpp)")
+set(CXXOPTS_INCLUDE_DIR "" CACHE PATH "Path to directory that contains cxxopts.hpp")
+set(HTSLIB_ROOT "" CACHE PATH "Root/prefix of htslib (contains include/ and lib/)")
+set(HTSLIB_INCLUDE_DIR "" CACHE PATH "Path to directory that contains htslib/hts.h")
+set(HTSLIB_LIBRARY "" CACHE FILEPATH "Full path to libhts.{so,dylib,a}")
+
+
 
 add_executable(pileup-events
   src/main.cpp
@@ -22,31 +31,53 @@ set(_COMMON_HINT_PREFIXES
 
 # ---------------- cxxopts (header-only) ----------------
 set(CXXOPTS_TARGET "")
-if(PkgConfig_FOUND)
-  pkg_check_modules(CXXOPTS QUIET IMPORTED_TARGET cxxopts)
-  if(CXXOPTS_FOUND)
-    set(CXXOPTS_TARGET PkgConfig::CXXOPTS)
-  endif()
-endif()
+set(_cxxopts_inc "")
 
-if(NOT CXXOPTS_TARGET)
-  find_path(CXXOPTS_INCLUDE_DIR
+# try user, then pkg-config, then general
+if(CXXOPTS_INCLUDE_DIR)
+  set(_cxxopts_inc "${CXXOPTS_INCLUDE_DIR}")
+else()
+  if(PkgConfig_FOUND)
+    pkg_check_modules(CXXOPTS QUIET IMPORTED_TARGET cxxopts)
+    if(CXXOPTS_FOUND)
+      set(CXXOPTS_TARGET PkgConfig::CXXOPTS)
+    endif()
+  endif()
+  find_path(_cxxopts_inc
     NAMES cxxopts.hpp
-    HINTS ${_COMMON_HINT_PREFIXES}
+    HINTS ${CXXOPTS_ROOT} ${_COMMON_HINT_PREFIXES}
     PATH_SUFFIXES include
   )
-  if(NOT CXXOPTS_INCLUDE_DIR)
-    message(FATAL_ERROR "Could not find cxxopts.hpp (tried standard prefixes).")
-  endif()
+endif()
+
+if (NOT CXXOPTS_TARGET)
   add_library(cxxopts INTERFACE)
   add_library(cxxopts::cxxopts ALIAS cxxopts)
-  target_include_directories(cxxopts INTERFACE "${CXXOPTS_INCLUDE_DIR}")
+  target_include_directories(cxxopts INTERFACE "${_cxxopts_inc}")
   set(CXXOPTS_TARGET cxxopts::cxxopts)
 endif()
 
+if(NOT CXXOPTS_TARGET)
+  message(FATAL_ERROR "Could not find cxxopts directly or via pkg-config. Set CXXOPTS_ROOT or CXXOPTS_INCLUDE_DIR.")
+endif()
+
+
 # ---------------- htslib (library + headers) ----------------
+# --- htslib discovery (user -> pkg-config -> general) ---
+
 set(HTSLIB_TARGET "")
-if(PkgConfig_FOUND)
+set(_htslib_inc "")
+set(_htslib_lib "")
+
+if(HTSLIB_INCLUDE_DIR)
+  set(_htslib_inc "${HTSLIB_INCLUDE_DIR}")
+endif()
+if(HTSLIB_LIBRARY)
+  set(_htslib_lib "${HTSLIB_LIBRARY}")
+endif()
+
+if(NOT HTSLIB_TARGET AND PkgConfig_FOUND)
+  # assuming the pkg-config module is called "htslib"
   pkg_check_modules(HTSLIB QUIET IMPORTED_TARGET htslib)
   if(HTSLIB_FOUND)
     set(HTSLIB_TARGET PkgConfig::HTSLIB)
@@ -54,26 +85,40 @@ if(PkgConfig_FOUND)
 endif()
 
 if(NOT HTSLIB_TARGET)
-  find_path(HTSLIB_INCLUDE_DIR
-    NAMES htslib/hts.h
-    HINTS ${_COMMON_HINT_PREFIXES}
-    PATH_SUFFIXES include
-  )
-  find_library(HTSLIB_LIBRARY
-    NAMES hts htslib
-    HINTS ${_COMMON_HINT_PREFIXES}
-    PATH_SUFFIXES lib lib64
-  )
-  if(NOT HTSLIB_INCLUDE_DIR OR NOT HTSLIB_LIBRARY)
-    message(FATAL_ERROR "Could not find htslib (headers+lib) in standard prefixes.")
+  if(NOT _htslib_inc)
+    find_path(_htslib_inc
+      NAMES htslib/hts.h
+      HINTS ${HTSLIB_ROOT} ${_COMMON_HINT_PREFIXES}
+      PATH_SUFFIXES include
+    )
   endif()
-  add_library(htslib::hts UNKNOWN IMPORTED)
-  set_target_properties(htslib::hts PROPERTIES
-    IMPORTED_LOCATION "${HTSLIB_LIBRARY}"
-    INTERFACE_INCLUDE_DIRECTORIES "${HTSLIB_INCLUDE_DIR}"
-  )
-  set(HTSLIB_TARGET htslib::hts)
+
+  if(NOT _htslib_lib)
+    find_library(_htslib_lib
+      NAMES htslib
+      HINTS ${HTSLIB_ROOT} ${_COMMON_HINT_PREFIXES}
+      PATH_SUFFIXES lib lib64
+    )
+  endif()
 endif()
+
+if(NOT HTSLIB_TARGET AND _htslib_inc AND _htslib_lib)
+  add_library(htslib IMPORTED GLOBAL)
+  add_library(htslib::htslib ALIAS htslib)
+  set_target_properties(htslib PROPERTIES
+    IMPORTED_LOCATION "${_htslib_lib}"
+    INTERFACE_INCLUDE_DIRECTORIES "${_htslib_inc}"
+  )
+  set(HTSLIB_TARGET htslib::htslib)
+endif()
+
+if(NOT HTSLIB_TARGET)
+  message(FATAL_ERROR
+    "Could not find htslib directly or via pkg-config. "
+    "Set HTSLIB_ROOT or both HTSLIB_INCLUDE_DIR and HTSLIB_LIBRARY."
+  )
+endif()
+# --- end deps ---
 
 target_compile_options(pileup-events PRIVATE
     -Wall
