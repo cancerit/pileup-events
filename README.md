@@ -2,12 +2,22 @@
 
 ## Installation
 
-You will need cxxopts and htslib installed,
-and preferably pkgconfig.
-Any standard install method should work for
-these dependecies, e.g. `brew`, `apt`.  
+You will need cmake, cxxopts and htslib installed,
+and preferably pkg-config if you want to install
+the easy way.
+If you don't already have these dependencies,
+it would be best to install via your package
+manager. e.g. on Ubuntu
+```bash
+  apt install cmake cxxopts htslib pkg-config
+```
+or on mac
+```bash
+  brew install cmake cxxopts htslib pkg-config
+```
 
-To create the pileup-events binary:
+Once you have these dependencies, to
+create the pileup-events binary:
 ```bash
   mkdir build
   cd build
