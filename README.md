@@ -1,6 +1,6 @@
 # pileup-events
 
-## installation
+## Installation
 
 You will need cxxopts and htslib installed,
 and preferably pkgconfig.
@@ -15,6 +15,6 @@ To create the pileup-events binary:
   cmake --build .
 ```
 
-## usage
+## Usage
 
 See `./pileup-events --help`
