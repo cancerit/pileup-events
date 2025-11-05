@@ -48,12 +48,20 @@ Assuming compilation against a recent version of htslib, b
 both .bam and .cram are in principle supported.
 No testing on cram has been done as of yet.
 
-# Acknowledgements
+## Acknowledgements
 
 This tool uses [htslib](https://github.com/samtools/htslib) by the samtools team, and [cxxopts](https://github.com/jarro2783/cxxopts) by Jarryd Beck & contributors.
 
 <!-- NOTE: I will add that is an upgrade over the original having proved it actually works under load! -->
-The function of the tool is to provide an standalone version of the `bam2R()` functionality found in the R package [deepSNV](https://github.com/gerstung-lab/deepSNV). It is a complete rewrite of the concepts found therein. The citations for `deepSNV` are as follows:
-> Gerstung M, Beisel C, Rechsteiner M, Wild P, Schraml P, Moch H, Beerenwinkel N (2012). “Reliable detection of subclonal single-nucleotide variants in tumor cell populations.” Nat Commun, 3, 811.
+The function of the tool is to provide an standalone version of the `bam2R()` functionality found in the R package [deepSNV](https://github.com/gerstung-lab/deepSNV). It is a complete rewrite of the concepts found therein.
+
+### Citations
+htslib:
+> HTSlib: C library for reading/writing high-throughput sequencing data
+> James K Bonfield, John Marshall, Petr Danecek, Heng Li, Valeriu Ohan, Andrew Whitwham, Thomas Keane, Robert M Davies
+> GigaScience, Volume 10, Issue 2, February 2021, giab007, https://doi.org/10.1093/gigascience/giab007  
+
+deepSNV:  
+> Gerstung M, Beisel C, Rechsteiner M, Wild P, Schraml P, Moch H, Beerenwinkel N (2012). “Reliable detection of subclonal single-nucleotide variants in tumor cell populations.” Nat Commun, 3, 811.  
 >  Gerstung M, Papaemmanuil E, Campbell PJ (2014). “Subclonal variant calling with multiple samples and prior knowledge.” Bioinformatics, 30, 1198-1204.
 
