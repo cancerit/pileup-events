@@ -15,6 +15,7 @@
 #include "pileup.hpp"
 #include "structs.hpp"
 
+constexpr std::string_view VERSION = "0.0.0";
 constexpr std::string_view HEADER =
     "A,T,C,G,-,N,INS,DEL,HEAD,TAIL,QUAL,a,t,c,g,_,n,ins,del,head,"
     "tail,qual";
@@ -183,7 +184,8 @@ int main (int argc,
 
             ("head", "Print header")
             ("row", "Print genomic position index for each row")
-            ("h,help", "Print usage");
+            ("h,help", "Print usage")
+            ("version", "Print program version");  // ideally this would report the version of htslib compiled against
         // clang-format on
 
         options.parse_positional ({"aln", "region"});
@@ -193,6 +195,11 @@ int main (int argc,
         if (parsed_args.count ("help")) {
             std::cout << options.help() << std::endl;
             return 0; // nothing given nothing done
+        }
+
+        if (parsed_args.count ("version")) {
+            std::cout << VERSION << std::endl;
+            return 0;
         }
 
         if ((!parsed_args.count ("aln")) ||
