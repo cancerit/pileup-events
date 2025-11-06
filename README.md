@@ -45,7 +45,9 @@ e.g.:
   pileup-events ~/path/to/sample.bam chr1:1000-2000  # 1001bp range
 ```
 
-The region string is 1-indexed, end-inclusive, i.e. identical to `samtools view`.
+The region string is 1-indexed, end-inclusive, i.e. identical to `samtools view` -
+excepting the fact that `pileup-events` allows a series of shorthands such as chr:pos 
+for a single location. See the helptext for more details.
 Assuming compilation against a recent version of htslib, b
 both .bam and .cram are in principle supported.
 No testing on cram has been done as of yet.
