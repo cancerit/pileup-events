@@ -46,7 +46,7 @@ e.g.:
 ```
 
 The region string is 1-indexed, end-inclusive, i.e. identical to `samtools view` -
-excepting the fact that `pileup-events` allows a series of shorthands such as chr:pos 
+excepting the fact that `pileup-events` allows a series of shorthands such as `<chr>:<pos>` 
 for a single location. See the helptext for more details.
 Assuming compilation against a recent version of htslib, b
 both .bam and .cram are in principle supported.
