@@ -26,9 +26,9 @@ inline constexpr uint8_t FLAG_IS_DEL = (1 << 7); // Is a deleted base
 
 // htslib 4-bit-encoding values
 inline constexpr uint8_t base_to_count_field[16] = {
-    COUNT_N, COUNT_A, COUNT_C, COUNT_N, COUNT_G, COUNT_N,
-    COUNT_N, COUNT_N, COUNT_T, COUNT_N, COUNT_N, COUNT_N,
-    COUNT_N, COUNT_N, COUNT_N, COUNT_N};
+    FIELD_N, FIELD_A, FIELD_C, FIELD_N, FIELD_G, FIELD_N,
+    FIELD_N, FIELD_N, FIELD_T, FIELD_N, FIELD_N, FIELD_N,
+    FIELD_N, FIELD_N, FIELD_N, FIELD_N};
 
 
 // cleave tie to bam pointer
@@ -140,16 +140,23 @@ inline void base_set (BaseInfo &b,
 }
 
 
+struct AEVSettings {
+    bool discard_overlaps = false;
+};
+
 class AlleleEventCounter {
   private:
     const count_params params;
     std::vector<int> &counts;
+    AEVSettings settings;
 
   public:
     AlleleEventCounter (const count_params params_,
-                        std::vector<int> &counts_)
+                        std::vector<int> &counts_,
+                        AEVSettings settings_)
         : params (params_),
-          counts (counts_) {}
+          counts (counts_),
+          settings (settings_) {}
 
     void _collate_alleles (const count_params &par,
                            const PileupReadInfo &pir,
@@ -194,20 +201,21 @@ class AlleleEventCounter {
             make_idx ((pos_offset * N_FIELDS_PER_OBS) +
                       ((b.flag & FLAG_REV) ? RSTRAND_OFFSET : 0));
 
+        counts[field (FIELD_NOBS)]++; // count obs
 
-        counts[field (COUNT_HEAD)] +=
+        counts[field (FIELD_HEAD)] +=
             (b.flag & FLAG_HEAD) != FLAG_UNSET;
-        counts[field (COUNT_TAIL)] +=
+        counts[field (FIELD_TAIL)] +=
             (b.flag & FLAG_TAIL) != FLAG_UNSET;
 
         if (b.flag & FLAG_POS_FAIL) {
-            counts[field (COUNT_N)]++;
+            counts[field (FIELD_N)]++;
         } else {
             if (b.flag & FLAG_IS_DEL) {
-                counts[field (COUNT_IS_DEL)]++;
+                counts[field (FIELD_IS_DEL)]++;
             } else {
                 if (b.flag & FLAG_QUAL_FAIL) {
-                    counts[field (COUNT_N)]++;
+                    counts[field (FIELD_N)]++;
                 } else {
                     // ASSUMPTION: base is 4 bit (in [0, 15])
                     counts[field (base_to_count_field[b.base])]++;
@@ -215,12 +223,12 @@ class AlleleEventCounter {
 
                 // NOTE: what about multi-base deletions (is_del
                 // follwed by negative indel?)?
-                counts[field (COUNT_DEL)] +=
+                counts[field (FIELD_FDEL)] +=
                     (b.flag & FLAG_FDEL) != 0;
-                counts[field (COUNT_INS)] +=
+                counts[field (FIELD_FINS)] +=
                     (b.flag & FLAG_FINS) != 0;
             }
-            counts[field (COUNT_MAPQ)] +=
+            counts[field (FIELD_MAPQ)] +=
                 b.map_quality; // not assessed to be positive, but not
                                // really important for our needs right
                                // now
@@ -259,19 +267,30 @@ class AlleleEventCounter {
     void count_pileup (const bam_pileup1_t *pileups_ptr,
                        const size_t pos_block_offset,
                        const size_t n_reads) {
-        // Collate alleles by read pair
-        std::unordered_map<std::string, BasePairInfo> qname_map;
-        for (size_t i = 0; i < n_reads; ++i) {
-            const bam_pileup1_t htspile = *(pileups_ptr + i);
-            auto pinfo = PileupReadInfo::from_pileup (htspile);
-            _collate_alleles (params, pinfo, qname_map);
-        }
+        if (!settings.discard_overlaps) {
+            for (size_t i = 0; i < n_reads; ++i) {
+                const bam_pileup1_t htspile = *(pileups_ptr + i);
+                BaseInfo b;
+                b.from_pinfo (PileupReadInfo::from_pileup (htspile),
+                              params);
+                _score_single (b, pos_block_offset);
+            }
+        } else {
+            // Collate alleles by read pair
+            std::unordered_map<std::string, BasePairInfo> qname_map;
+            for (size_t i = 0; i < n_reads; ++i) {
+                const bam_pileup1_t htspile = *(pileups_ptr + i);
+                auto pinfo = PileupReadInfo::from_pileup (htspile);
+                _collate_alleles (params, pinfo, qname_map);
+            }
 
-        // Count
-        int toggle = 0;
-        for (auto &[qname, bpair] : qname_map) {
-            _score_pair (bpair, pos_block_offset,
-                         toggle); // rlen is the wrong thing to pass
+            // Count
+            int toggle = 0;
+            for (auto &[qname, bpair] : qname_map) {
+                _score_pair (
+                    bpair, pos_block_offset,
+                    toggle);
+            }
         }
     }
 };
