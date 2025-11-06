@@ -348,7 +348,7 @@ int main (int argc,
             std::cout << HEADER << "\n";
         }
         size_t i = 0;
-        size_t row_counter = 1; // add 1 for 1-indexed row, per VCF
+        size_t row_counter = 1; // adds 1 for 1-indexed row to match input region string
         while (i < result.size()) {
             if (print_row)
                 std::cout
