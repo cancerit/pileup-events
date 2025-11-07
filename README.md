@@ -6,31 +6,36 @@ Count alleles and alignment events per position for a specified genomic region.
 
 You will need `cmake>=3.16` and `htslib>=1.14` installed,
 and preferably `pkg-config` if you want to install
-the easy way.
+the easy way. If you want to create python and/or R
+bindings you will also need `SWIG>=4.0`.
 If you don't already have these dependencies,
 it would be best to install via your package
 manager. e.g. on Ubuntu
 ```bash
-  apt install cmake pkg-config htslib
+  apt install cmake swig pkg-config libhts-dev
 ```
 or on mac
 ```bash
-  brew install cmake pkg-config htslib
+  brew install cmake swig pkg-config htslib
 ```
 
 Once you have these dependencies, to
-create the pileup-events binary:
+create the pileup-events binary and/or R and python bindings:
 ```bash
   # git clone <this repo>
   # cd <repo folder>
   mkdir build
   cd build
   cmake ..
-  cmake --build .  # create binary
+  cmake --build . \
+    -DMAKE_EXE=ON \ # create binary
+    -DMAKE_PY_BINDS \ # make python bindings
+    -DMAKE_R_BINDS # R
 ```
 
 You can then invoke the binary like `./path/to/pileup-events --help`.
 Add the binary path to PATH to be able to call `pileup-events` from anywhere.
+For usage of the R and python bindings see subsequent sections.
 
 ## Usage
 
@@ -41,16 +46,72 @@ and run on that location to see the event counts.
 
 e.g.:
 ```bash
-  pileup-events ~/path/to/sample.bam chr1:1000  # single location
-  pileup-events ~/path/to/sample.bam chr1:1000-2000  # 1001bp range
+  pileup-events \
+    -i 2 \  # only count reads in proper pairs
+    ~/path/to/sample.bam \
+    chr1:1000  # single location
+
+  pileup-events \
+    ~/path/to/sample.bam \
+    chr1:1000-2000  # 1001bp range
 ```
 
 The region string is 1-indexed, end-inclusive, i.e. identical to `samtools view` -
 excepting the fact that `pileup-events` allows a series of shorthands such as `<chr>:<pos>` 
 for a single location. See the helptext for more details.
-Assuming compilation against a recent version of htslib, b
+Assuming compilation against a recent version of htslib,
 both .bam and .cram are in principle supported.
 No testing on cram has been done as of yet.
+
+## R & Python Bindings
+
+Bindings for usage of pileup events in both R and Python can be generated during compilation. This is enabled via [SWIG](https://www.swig.org/). As described in the installation section above, python bindings may be created with the `-DMAKE_PY_BINDS=ON` option and R with `-DMAKE_R_BINDS=ON`. Doing so will result in the generation of `build/python` and `build/r` respectively.
+
+At present bindings are somewhat rudimentary - this may be improved upon in the future. Usage is as follows:
+
+**R:**
+```R
+  build_dir <- "</absolute/path/to/build>/r"  # replace between <>
+  dyn.load(paste0(build_dir, "/pileup_events.so"))
+  source(paste0(build_dir, "/pileup_events.R"))
+  count_events(
+    "absolute/path/to/bam",
+    "chrX:150"
+    # no_overlaps=False,  # optional parameters with default values
+    # min_mapq=25,
+    # min_baseq=30,
+    # include_flag=0,
+    # exclude_flag=3844,
+    # max_depth=1000000,
+    # clip_bound=0
+  )
+```
+
+**Python:**
+```bash
+  # setup
+  pev_bind_path=</path/to/build>/python   # replace between <>
+  export PYTHONPATH=${PYTHONPATH}:${pev_bind_path}  # add to python path (not permanent)
+```
+```python
+  import pileup_events as pev
+  help(pev.count_events)
+  pev.count_events(
+    "absolute/path/to/bam",
+    "chrX:100-200"
+    # no_overlaps=False,  # optional parameters with default values
+    # min_mapq=25,
+    # min_baseq=30,
+    # include_flag=0,
+    # exclude_flag=3844,
+    # max_depth=1000000,
+    # clip_bound=0
+  )
+```
+
+In either case the return value of the count events function is a 1D vector, where each of the genomic positions counted is a block of 24 cells in the vector. It is currently left to the user to transform this strucutre into any desirable alternative.
+
+The compiled bindings directories (`python/` and `r/`) can be renamed, and moved anywhere appropriate on the system. They are not dependent on other build artefacts. Do not modify or rename any of the files within these directories. Note that for the python bindings if you do move/rename the `python/` directory you will need to add the new location to PYTHONPATH.
 
 ## Authors & Acknowledgements
 
