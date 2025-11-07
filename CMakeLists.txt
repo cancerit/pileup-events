@@ -7,14 +7,11 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 option(ENABLE_DEBUG_FLAGS "Enable extra debug compile options" OFF)
+option(MAKE_PY_BINDS "Build python bindings via SWIG" OFF)
 
 # user paths to htslib if needed
 set(HTSLIB_INCLUDE_DIR "" CACHE PATH "Path to directory that contains htslib/hts.h")
 set(HTSLIB_LIBRARY "" CACHE FILEPATH "Absolute path to libhts.{so,dylib,a}")
-
-add_executable(pileup-events
-  src/main.cpp
-)
 
 # //----- find deps ---//
 find_package(PkgConfig QUIET)
@@ -69,35 +66,78 @@ if(NOT HTSLIB_TARGET)
 endif()
 # //--- end deps ---//
 
-target_compile_options(pileup-events PRIVATE
-    -Wall
-    -Wextra
-    -Wpedantic
-    -Wshadow
-    -Wconversion
-    -Wsign-conversion
-    -Wfloat-equal
-    -Wnon-virtual-dtor
-    -Wold-style-cast
-    -Woverloaded-virtual
-    -Wnull-dereference
-    -Wdouble-promotion
-    -Wformat=2
-)
+add_library(pev_core INTERFACE)
+target_include_directories(pev_core INTERFACE include)
 
 if(ENABLE_DEBUG_FLAGS)
-  target_compile_options(pileup-events PRIVATE
+  target_compile_options(pev_core INTERFACE
+      -Wall
+      -Wextra
+      -Wpedantic
+      -Wshadow
+      -Wconversion
+      -Wsign-conversion
+      -Wfloat-equal
+      -Wnon-virtual-dtor
+      -Wold-style-cast
+      -Woverloaded-virtual
+      -Wnull-dereference
+      -Wdouble-promotion
+      -Wformat=2
+  )
+  target_compile_options(pev_core PRIVATE
     -fsanitize=address,undefined
     -fno-omit-frame-pointer
     -O0 -g
   )
-  target_link_options(pileup-events PRIVATE
+  target_link_options(pev_core PRIVATE
     -fsanitize=address,undefined
   )
 endif()
 
-target_link_libraries(pileup-events PRIVATE
-  cxxopts::cxxopts
+target_link_libraries(pev_core INTERFACE
   ${HTSLIB_TARGET}
 )
+
+set_target_properties(pev_core PROPERTIES POSITION_INDEPENDENT_CODE ON)
+
+
+add_executable(pileup-events
+  src/main.cpp
+)
+target_link_libraries(pileup-events
+  PRIVATE
+  cxxopts::cxxopts
+  pev_core
+)
+
+
+# SWIG
+if(MAKE_PY_BINDS)
+  find_package(Python3 REQUIRED COMPONENTS Interpreter Development.Module)
+  find_package(SWIG 4.0 REQUIRED)
+  include(UseSWIG)
+  set(CMAKE_SWIG_FLAGS -c++)
+
+  set_source_files_properties(${CMAKE_CURRENT_SOURCE_DIR}/swig/pev_bindings.i
+    PROPERTIES CPLUSPLUS ON)
+
+  set(CMAKE_SWIG_OUTDIR ${CMAKE_CURRENT_BINARY_DIR}/python)
+  swig_add_library(pev_bindings
+    TYPE MODULE
+    LANGUAGE python
+    SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/swig/pev_bindings.i
+  )
+
+  set_target_properties(pev_bindings PROPERTIES
+    SWIG_USE_TARGET_INCLUDE_DIRECTORIES ON
+    OUTPUT_NAME "_pev"                        # import pev_bindings; loads _pev
+  )
+  target_include_directories(pev_bindings PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/include
+    ${CMAKE_CURRENT_SOURCE_DIR}/src              # if wrap.hpp is beside sources
+  )
+  target_link_libraries(pev_bindings PRIVATE pev_core Python3::Module)
+endif(MAKE_PY_BINDS)
+
 
