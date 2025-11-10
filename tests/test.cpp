@@ -15,4 +15,10 @@ TEST_CASE ("score single") {
     aev._score_single (b, 0);
     CAPTURE (res);
     REQUIRE (res[FIELD_A] == 1);
+    REQUIRE (res[FIELD_MAPQ] == 30);
+    REQUIRE (res[FIELD_NOBS] == 1);
+    int sum = 0;
+    for (int x : res)
+        sum += x;
+    REQUIRE (sum == 32);  // rest 0
 }
