@@ -114,7 +114,7 @@ In either case the return value of the count events function is a 1D vector, whe
 
 The compiled bindings directories (`python/` and `r/`) can be renamed, and moved anywhere appropriate on the system. They are not dependent on other build artefacts. Do not modify or rename any of the files within these directories. Note that for the python bindings if you do move/rename the `python/` directory you will need to add the new location to PYTHONPATH.
 
-## Development and Testing
+## Development & Testing
 
 To enable compliation with debug flags and compilation of the test binary, add the following options to the `cmake ..` step:
 
